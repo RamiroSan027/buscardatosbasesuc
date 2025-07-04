@@ -116,11 +116,13 @@
           const valor = values[index] ?? '';
 
           if (columnasContables.includes(index)) {
-            const num = parseFloat(valor?.toString().replace(/[\d,-]+/g, '').replace(',', '.')) || 0;
-            td.textContent = formatoMoneda.format(num);
+          const limpio = valor?.toString().replace(/[^0-9,-]+/g, '').replace(/\./g, '').replace(',', '.');
+          const num = parseFloat(limpio) || 0;
+          td.textContent = formatoMoneda.format(num);
           } else {
-            td.textContent = valor;
+          td.textContent = valor;
           }
+
 
           td.addEventListener('click', () => {
             navigator.clipboard.writeText(td.textContent)
@@ -144,8 +146,11 @@
 
           const campo = document.createElement('div');
           const texto = columnasContables.includes(index)
-            ? formatoMoneda.format(parseFloat(valor?.toString().replace(/[\d,-]+/g, '').replace(',', '.')) || 0)
-            : valor;
+          ? formatoMoneda.format(
+          parseFloat((valor?.toString().replace(/[^0-9,-]+/g, '').replace(/\./g, '').replace(',', '.')) || 0)
+          )
+          : valor;
+
 
           campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
           campo.style.cursor = 'pointer';
