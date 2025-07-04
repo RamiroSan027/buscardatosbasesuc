@@ -292,6 +292,12 @@ function mostrarToast(mensaje) {
     toast.classList.remove('show');
   }, 2000); // Se oculta después de 2 segundos
 }
+fetch('datos.xlsx')
+  .then(res => res.arrayBuffer())
+  .then(buffer => {
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    // procesar datos
+  });
 
 
 </script>
