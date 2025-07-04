@@ -116,12 +116,17 @@
           const valor = values[index] ?? '';
 
           if (columnasContables.includes(index)) {
-    const valor = parseFloat(row[index]?.toString().replace(/[^\d.-]+/g, '')) || 0;
-    td.textContent = formatoMoneda.format(valor);
-    td.classList.add('contable');
-  } else {
-    td.textContent = row[index] || '';
-  }
+  const limpio = valor?.toString()
+    .replace(/[^0-9,.-]+/g, '')  // Quita todo menos números, coma, punto, guion
+    .replace(/\./g, '')          // Elimina puntos (miles)
+    .replace(',', '.');          // Cambia coma decimal a punto
+
+  const num = parseFloat(limpio);
+  td.textContent = isNaN(num) ? valor : formatoMoneda.format(num);
+} else {
+  td.textContent = valor;
+}
+
 
           td.addEventListener('click', () => {
             navigator.clipboard.writeText(td.textContent)
@@ -144,11 +149,15 @@
           const valor = values[index] ?? '-';
 
           const campo = document.createElement('div');
-          const campo = document.createElement('div');
-  campo.innerHTML = `<strong>${label}:</strong> ${columnasContables.includes(index)
-    ? formatoMoneda.format(parseFloat(valor?.toString().replace(/[^\d.-]+/g, '')) || 0)
-    : valor}`;
+          const limpio = valor?.toString()
+  .replace(/[^0-9,.-]+/g, '')
+  .replace(/\./g, '')
+  .replace(',', '.');
 
+const num = parseFloat(limpio);
+const texto = columnasContables.includes(index) && !isNaN(num)
+  ? formatoMoneda.format(num)
+  : valor;
 
           campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
           campo.style.cursor = 'pointer';
