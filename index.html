@@ -115,13 +115,13 @@
           const td = document.createElement('td');
           const valor = values[index] ?? '';
 
-          if (columnasContables.includes(index)) {
+          /*if (columnasContables.includes(index)) {
           const limpio = valor?.toString().replace(/[^0-9,-]+/g, '').replace(/\./g, '').replace(',', '.');
           const num = parseFloat(limpio) || 0;
           td.textContent = formatoMoneda.format(num);
           } else {
-          td.textContent = valor;
-          }
+          
+          }*/td.textContent = valor;
 
 
           td.addEventListener('click', () => {
@@ -145,11 +145,11 @@
           const valor = values[index] ?? '-';
 
           const campo = document.createElement('div');
-          const texto = columnasContables.includes(index)
+          /*const texto = columnasContables.includes(index)
           ? formatoMoneda.format(
           parseFloat((valor?.toString().replace(/[^0-9,-]+/g, '').replace(/\./g, '').replace(',', '.')) || 0)
           )
-          : valor;
+          : valor;*/const texto = valor;
 
 
           campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
