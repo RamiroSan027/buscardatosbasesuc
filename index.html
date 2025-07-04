@@ -305,24 +305,21 @@ function mostrarToast(mensaje) {
 <script>
   async function cargarExcelDesdeServidor() {
     try {
-      // 1. Cargar el archivo del mismo repositorio
-      const response = await fetch('Base.xlsx'); // asegúrate que esté en la raíz del repo o ajustá el path
-      const arrayBuffer = await response.arrayBuffer();
+      fetch('Base.xlsx')
+  .then(res => res.arrayBuffer())
+  .then(buffer => {
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const hoja = workbook.Sheets[workbook.SheetNames[0]];
+    const datos = XLSX.utils.sheet_to_json(hoja, { defval: "" });
 
-      // 2. Leer con SheetJS
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const hoja = workbook.Sheets[sheetName];
-      const datos = XLSX.utils.sheet_to_json(hoja, { header: 1 });
+    window.excelData = datos;
+    alert('✅ Excel cargado desde GitHub');
 
-      // 3. Guardar y renderizar
-      window.excelData = datos;
-      alert("📄 Excel cargado automáticamente");
-      document.getElementById('searchInput').disabled = false;
-      document.getElementById('searchBtn').disabled = false;
-      document.getElementById('clearBtn').disabled = false;
+    document.getElementById('searchInput').disabled = false;
+    document.getElementById('searchBtn').disabled = false;
+    document.getElementById('clearBtn').disabled = false;
+  });
 
-      // Podés renderizar algo automáticamente si querés
     } catch (error) {
       alert("❌ Error al cargar el Excel: " + error.message);
     }
