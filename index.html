@@ -116,16 +116,14 @@
           const valor = values[index] ?? '';
 
           if (columnasContables.includes(index)) {
-  const limpio = valor?.toString()
-    .replace(/[^0-9,.-]+/g, '')  // Quita todo menos números, coma, punto, guion
-    .replace(/\./g, '')          // Elimina puntos (miles)
-    .replace(',', '.');          // Cambia coma decimal a punto
-
-  const num = parseFloat(limpio);
+  function parseFormatoContable(valor) {
+  if (columnasContables.includes(index)) {
+  const num = parseFormatoContable(valor);
   td.textContent = isNaN(num) ? valor : formatoMoneda.format(num);
 } else {
   td.textContent = valor;
 }
+
 
 
           td.addEventListener('click', () => {
@@ -149,15 +147,11 @@
           const valor = values[index] ?? '-';
 
           const campo = document.createElement('div');
-          const limpio = valor?.toString()
-  .replace(/[^0-9,.-]+/g, '')
-  .replace(/\./g, '')
-  .replace(',', '.');
-
-const num = parseFloat(limpio);
+          const num = parseFormatoContable(valor);
 const texto = columnasContables.includes(index) && !isNaN(num)
   ? formatoMoneda.format(num)
   : valor;
+
 
           campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
           campo.style.cursor = 'pointer';
