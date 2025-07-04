@@ -162,6 +162,7 @@ searchInput.addEventListener('keydown', function(e) {
   });
 
   function renderTable(filteredData) {
+  function renderTable(filteredData) {
   const tableHead = document.querySelector('#excelTable thead');
   const tableBody = document.querySelector('#excelTable tbody');
   tableHead.innerHTML = '';
@@ -169,82 +170,85 @@ searchInput.addEventListener('keydown', function(e) {
 
   if (filteredData.length === 0) return;
 
-  const columnasPrincipales = [0, 1, 3, 8, 4];     // Primera fila
-  const columnasAdicionales = [5, 6, 7, 2, 9, 10];     // Segunda fila
-  const columnasContables = [4, 6]; // Ejemplo: columnas con formato contabilidad
+  const columnasPrincipales = [0, 1, 3, 8, 4];       // ← Índices de columnas visibles
+  const columnasAdicionales = [5, 6, 7, 2, 9, 10];   // ← Datos extra abajo
+  const columnasContables = [4, 6]; // Columnas con formato contable
 
-  // CABECERA (solo la de la primera fila)
+  const headers = Object.keys(window.excelData[0]);
+
+  // CABECERA
   const headerRow = document.createElement('tr');
   columnasPrincipales.forEach(index => {
     const th = document.createElement('th');
-    th.textContent = data[0][index] || '';
+    th.textContent = headers[index] || '';
     headerRow.appendChild(th);
   });
   tableHead.appendChild(headerRow);
 
   // CUERPO
   filteredData.forEach(row => {
-  // Fila principal
-  const trMain = document.createElement('tr');
-  columnasPrincipales.forEach(index => {
-  const td = document.createElement('td');
+    const values = Object.values(row);
 
-  if (columnasContables.includes(index)) {
-    const valor = parseFloat(row[index]?.toString().replace(/[^\d.-]+/g, '')) || 0;
-    td.textContent = formatoMoneda.format(valor);
-    td.classList.add('contable');
-  } else {
-    td.textContent = row[index] || '';
-  }
+    // Fila principal
+    const trMain = document.createElement('tr');
+    columnasPrincipales.forEach(index => {
+      const td = document.createElement('td');
+      const valor = values[index] ?? '';
 
-  td.addEventListener('click', () => {
-    navigator.clipboard.writeText(td.textContent)
-      .then(() => mostrarToast(`Copiado: ${td.textContent}`))
-      .catch(err => console.error('Error al copiar:', err));
+      if (columnasContables.includes(index)) {
+        const num = parseFloat(valor?.toString().replace(/[^\d,-]+/g, '').replace(',', '.')) || 0;
+        td.textContent = formatoMoneda.format(num);
+      } else {
+        td.textContent = valor;
+      }
+
+      td.addEventListener('click', () => {
+        navigator.clipboard.writeText(td.textContent)
+          .then(() => mostrarToast(`Copiado: ${td.textContent}`))
+          .catch(err => console.error('Error al copiar:', err));
+      });
+
+      trMain.appendChild(td);
+    });
+
+    tableBody.appendChild(trMain);
+
+    // Fila adicional
+    const trExtra = document.createElement('tr');
+    const tdExtra = document.createElement('td');
+    tdExtra.colSpan = columnasPrincipales.length;
+
+    const card = document.createElement('div');
+    card.className = 'extra-card';
+
+    columnasAdicionales.forEach(index => {
+      const label = headers[index] || `Col ${index}`;
+      const valor = values[index] ?? '-';
+
+      const campo = document.createElement('div');
+      const texto = columnasContables.includes(index)
+        ? formatoMoneda.format(parseFloat(valor?.toString().replace(/[^\d,-]+/g, '').replace(',', '.')) || 0)
+        : valor;
+
+      campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
+      campo.style.cursor = 'pointer';
+
+      campo.addEventListener('click', () => {
+        const textoVisible = campo.textContent.replace(/^.*?:\s*/, '');
+        navigator.clipboard.writeText(textoVisible)
+          .then(() => mostrarToast(`Copiado: ${textoVisible}`));
+      });
+
+      card.appendChild(campo);
+    });
+
+    tdExtra.appendChild(card);
+    trExtra.appendChild(tdExtra);
+    tableBody.appendChild(trExtra);
   });
-
-  trMain.appendChild(td);
-});
-
-  tableBody.appendChild(trMain);
-
-  // Fila adicional como bloque separado
-const trExtra = document.createElement('tr');
-const tdExtra = document.createElement('td');
-tdExtra.colSpan = columnasPrincipales.length;
-
-const card = document.createElement('div');
-card.className = 'extra-card';
-
-// Agregamos los campos adicionales al "card"
-columnasAdicionales.forEach(index => {
-  const label = data[0][index] || `Col ${index}`;
-  const valor = row[index] || '-';
-
-  const campo = document.createElement('div');
-  campo.innerHTML = `<strong>${label}:</strong> ${columnasContables.includes(index)
-    ? formatoMoneda.format(parseFloat(valor?.toString().replace(/[^\d.-]+/g, '')) || 0)
-    : valor}`;
-
-  // Copiar al hacer clic
-  campo.style.cursor = 'pointer';
-  campo.addEventListener('click', () => {
-  const textoVisible = campo.textContent.replace(/^.*?:\s*/, ''); // quita "Etiqueta:"
-  navigator.clipboard.writeText(textoVisible)
-    .then(() => mostrarToast(`Copiado: ${textoVisible}`));
-});
-
-
-  card.appendChild(campo);
-});
-
-tdExtra.appendChild(card);
-trExtra.appendChild(tdExtra);
-tableBody.appendChild(trExtra);
-
-});
-
 }
+
+  }
 
 
 
@@ -254,24 +258,29 @@ tableBody.appendChild(trExtra);
   }
 
   searchBtn.addEventListener('click', function () {
-    const searchTerm = searchInput.value.toLowerCase().trim();
+    searchBtn.addEventListener('click', function () {
+  const searchTerm = searchInput.value.toLowerCase().trim();
 
-    if (!searchTerm) {
-      clearTable();
-      return;
-    }
+  if (!searchTerm || !window.excelData) {
+    clearTable();
+    return;
+  }
 
-    const filteredData = data.slice(1).filter(row =>
-      row.some(cell => String(cell).toLowerCase().trim() === searchTerm)
-    );
+  const filteredData = window.excelData.filter(row =>
+    Object.values(row).some(cell =>
+      String(cell).toLowerCase().trim() === searchTerm
+    )
+  );
 
-    if (filteredData.length > 0) {
-      renderTable(filteredData);
-    } else {
-      clearTable();
-      alert("No se encontró el dato que buscás.");
-    }
-  });
+  if (filteredData.length > 0) {
+    renderTable(filteredData);
+  } else {
+    clearTable();
+    alert("No se encontró el dato que buscás.");
+  }
+});
+
+  }});
 
   clearBtn.addEventListener('click', function () {
     searchInput.value = '';
