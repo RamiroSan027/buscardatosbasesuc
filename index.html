@@ -115,14 +115,13 @@
           const td = document.createElement('td');
           const valor = values[index] ?? '';
 
-          /*if (columnasContables.includes(index)) {
-          const limpio = valor?.toString().replace(/[^0-9,-]+/g, '').replace(/\./g, '').replace(',', '.');
-          const num = parseFloat(limpio) || 0;
-          td.textContent = formatoMoneda.format(num);
-          } else {
-          
-          }*/td.textContent = valor;
-
+          if (columnasContables.includes(index)) {
+    const valor = parseFloat(row[index]?.toString().replace(/[^\d.-]+/g, '')) || 0;
+    td.textContent = formatoMoneda.format(valor);
+    td.classList.add('contable');
+  } else {
+    td.textContent = row[index] || '';
+  }
 
           td.addEventListener('click', () => {
             navigator.clipboard.writeText(td.textContent)
@@ -145,11 +144,10 @@
           const valor = values[index] ?? '-';
 
           const campo = document.createElement('div');
-          /*const texto = columnasContables.includes(index)
-          ? formatoMoneda.format(
-          parseFloat((valor?.toString().replace(/[^0-9,-]+/g, '').replace(/\./g, '').replace(',', '.')) || 0)
-          )
-          : valor;*/const texto = valor;
+          const campo = document.createElement('div');
+  campo.innerHTML = `<strong>${label}:</strong> ${columnasContables.includes(index)
+    ? formatoMoneda.format(parseFloat(valor?.toString().replace(/[^\d.-]+/g, '')) || 0)
+    : valor}`;
 
 
           campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
