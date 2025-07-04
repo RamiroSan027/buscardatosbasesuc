@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Buscar</title>
+  <link rel="shortcut icon" href="https://images.vexels.com/media/users/3/153874/isolated/preview/5147b9d69f00249a07732a905bcb251e-configuracion-de-busqueda-icono-de-trazo-de-color.png" style="border-radius: 7px;">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background-color: #f2f2f2; }
+
+    .input-container {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #searchInput {
+      width: 50%;
+      padding: 8px;
+    }
+
+    button {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .file-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    #fileStatusIcon,
+    #loadingSpinner {
+      position: absolute;
+      right: -25px;
+      top: 8px;
+      font-size: 18px;
+    }
+    td, th {
+  padding: 12px 8px; /* aumenta el alto */
+}
+
+#excelTable tr + tr td {
+  padding-top: 16px; /* más espacio entre filas consecutivas */
+}
+td {
+  cursor: pointer;
+}
+td:hover {
+  background-color: #e0f7fa;
+}
+#copiedToast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #323232;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  z-index: 9999;
+}
+#copiedToast.show {
+  opacity: 1;
+}
+.extra-card {
+  margin-top: 8px;
+  margin-left: 30px;
+  background: #f9f9f9;
+  padding: 12px;
+  border-left: 4px solid #2196f3;
+  border-radius: 6px;
+  font-size: 14px;
+  max-width: 500px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.extra-card div {
+  margin-bottom: 17px;
+}
+.extra-card strong {
+  color: #333;
+}
+
+
+  </style>
+</head>
+<body>
+
+<h2>Buscador de Datos</h2>
+
+<div class="file-wrapper">
+  <input type="file" id="excelFile" accept=".xlsx, .xls" />
+  <span id="fileStatusIcon" style="display: none;">✅</span>
+  <span id="loadingSpinner" style="display: none;">⏳</span>
+</div>
+
+<div class="input-container">
+  <input type="text" id="searchInput" placeholder="Ingresar dato a buscar..." disabled />
+  <button id="searchBtn" disabled>Buscar</button>
+  <button id="clearBtn" disabled>Limpiar</button>
+</div>
+
+<div id="copiedToast">📋 Copiado al portapapeles</div>
+
+
+<table id="excelTable">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let data = [];
+  const columnasAMostrar = [0, 1, 3, 4, 6]; // ← Modifica aquí si querés mostrar otras columnas
+
+  const fileInput = document.getElementById('excelFile');
+  const fileStatusIcon = document.getElementById('fileStatusIcon');
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const clearBtn = document.getElementById('clearBtn');
+
+  // Permitir que Enter ejecute la búsqueda
+searchInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    searchBtn.click();
+  }
+});
+
+
+  fileInput.addEventListener('change', function(e) {
+    loadingSpinner.style.display = 'inline';
+    fileStatusIcon.style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataBinary = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(dataBinary, { type: 'array' });
+
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+      data = jsonData;
+
+      searchInput.disabled = false;
+      searchBtn.disabled = false;
+      clearBtn.disabled = false;
+      clearTable();
+
+      loadingSpinner.style.display = 'none';
+      fileStatusIcon.style.display = 'inline';
+      alert("Archivo Excel cargado correctamente");
+    };
+    reader.readAsArrayBuffer(e.target.files[0]);
+  });
+
+  function renderTable(filteredData) {
+  const tableHead = document.querySelector('#excelTable thead');
+  const tableBody = document.querySelector('#excelTable tbody');
+  tableHead.innerHTML = '';
+  tableBody.innerHTML = '';
+
+  if (filteredData.length === 0) return;
+
+  const columnasPrincipales = [0, 1, 3, 8, 4];     // Primera fila
+  const columnasAdicionales = [5, 6, 7, 2, 9, 10];     // Segunda fila
+  const columnasContables = [4, 6]; // Ejemplo: columnas con formato contabilidad
+
+  // CABECERA (solo la de la primera fila)
+  const headerRow = document.createElement('tr');
+  columnasPrincipales.forEach(index => {
+    const th = document.createElement('th');
+    th.textContent = data[0][index] || '';
+    headerRow.appendChild(th);
+  });
+  tableHead.appendChild(headerRow);
+
+  // CUERPO
+  filteredData.forEach(row => {
+  // Fila principal
+  const trMain = document.createElement('tr');
+  columnasPrincipales.forEach(index => {
+  const td = document.createElement('td');
+
+  if (columnasContables.includes(index)) {
+    const valor = parseFloat(row[index]?.toString().replace(/[^\d.-]+/g, '')) || 0;
+    td.textContent = formatoMoneda.format(valor);
+    td.classList.add('contable');
+  } else {
+    td.textContent = row[index] || '';
+  }
+
+  td.addEventListener('click', () => {
+    navigator.clipboard.writeText(td.textContent)
+      .then(() => mostrarToast(`Copiado: ${td.textContent}`))
+      .catch(err => console.error('Error al copiar:', err));
+  });
+
+  trMain.appendChild(td);
+});
+
+  tableBody.appendChild(trMain);
+
+  // Fila adicional como bloque separado
+const trExtra = document.createElement('tr');
+const tdExtra = document.createElement('td');
+tdExtra.colSpan = columnasPrincipales.length;
+
+const card = document.createElement('div');
+card.className = 'extra-card';
+
+// Agregamos los campos adicionales al "card"
+columnasAdicionales.forEach(index => {
+  const label = data[0][index] || `Col ${index}`;
+  const valor = row[index] || '-';
+
+  const campo = document.createElement('div');
+  campo.innerHTML = `<strong>${label}:</strong> ${columnasContables.includes(index)
+    ? formatoMoneda.format(parseFloat(valor?.toString().replace(/[^\d.-]+/g, '')) || 0)
+    : valor}`;
+
+  // Copiar al hacer clic
+  campo.style.cursor = 'pointer';
+  campo.addEventListener('click', () => {
+  const textoVisible = campo.textContent.replace(/^.*?:\s*/, ''); // quita "Etiqueta:"
+  navigator.clipboard.writeText(textoVisible)
+    .then(() => mostrarToast(`Copiado: ${textoVisible}`));
+});
+
+
+  card.appendChild(campo);
+});
+
+tdExtra.appendChild(card);
+trExtra.appendChild(tdExtra);
+tableBody.appendChild(trExtra);
+
+});
+
+}
+
+
+
+  function clearTable() {
+    document.querySelector('#excelTable thead').innerHTML = '';
+    document.querySelector('#excelTable tbody').innerHTML = '';
+  }
+
+  searchBtn.addEventListener('click', function () {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+
+    if (!searchTerm) {
+      clearTable();
+      return;
+    }
+
+    const filteredData = data.slice(1).filter(row =>
+      row.some(cell => String(cell).toLowerCase().trim() === searchTerm)
+    );
+
+    if (filteredData.length > 0) {
+      renderTable(filteredData);
+    } else {
+      clearTable();
+      alert("No se encontró el dato que buscás.");
+    }
+  });
+
+  clearBtn.addEventListener('click', function () {
+    searchInput.value = '';
+    clearTable();
+  });
+  
+  const formatoMoneda = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  minimumFractionDigits: 2
+});
+
+function mostrarToast(mensaje) {
+  const toast = document.getElementById('copiedToast');
+  toast.textContent = `📋 ${mensaje}`;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2000); // Se oculta después de 2 segundos
+}
+
+
+</script>
+
+</body>
+</html>
