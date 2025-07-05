@@ -85,6 +85,17 @@
       document.querySelector('#excelTable tbody').innerHTML = '';
     }
 
+    function parseFormatoContable(valor) {
+      if (typeof valor !== 'string') return NaN;
+      const limpio = valor
+        .replace(/\s/g, '')
+        .replace(/\u00A0/g, '')
+        .replace(/[^0-9.,-]/g, '')
+        .replace(/\.(?=.*\.)/g, '')
+        .replace(',', '.');
+      return parseFloat(limpio);
+    }
+
     function renderTable(filteredData) {
       const tableHead = document.querySelector('#excelTable thead');
       const tableBody = document.querySelector('#excelTable tbody');
@@ -116,15 +127,11 @@
           const valor = values[index] ?? '';
 
           if (columnasContables.includes(index)) {
-  function parseFormatoContable(valor) {
-  if (columnasContables.includes(index)) {
-  const num = parseFormatoContable(valor);
-  td.textContent = isNaN(num) ? valor : formatoMoneda.format(num);
-} else {
-  td.textContent = valor;
-}
-
-
+            const num = parseFormatoContable(valor);
+            td.textContent = isNaN(num) ? valor : formatoMoneda.format(num);
+          } else {
+            td.textContent = valor;
+          }
 
           td.addEventListener('click', () => {
             navigator.clipboard.writeText(td.textContent)
@@ -146,13 +153,12 @@
           const label = headers[index] || `Col ${index}`;
           const valor = values[index] ?? '-';
 
-          const campo = document.createElement('div');
           const num = parseFormatoContable(valor);
-const texto = columnasContables.includes(index) && !isNaN(num)
-  ? formatoMoneda.format(num)
-  : valor;
+          const texto = columnasContables.includes(index) && !isNaN(num)
+            ? formatoMoneda.format(num)
+            : valor;
 
-
+          const campo = document.createElement('div');
           campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
           campo.style.cursor = 'pointer';
           campo.addEventListener('click', () => {
