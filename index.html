@@ -73,6 +73,23 @@
       style: 'currency', currency: 'ARS', minimumFractionDigits: 2
     });
 
+    function toContableFormat(valor) {
+      if (typeof valor === 'number') {
+        return formatoMoneda.format(valor);
+      }
+      if (typeof valor === 'string') {
+        const limpio = valor
+          .replace(/\s/g, '')
+          .replace(/\u00A0/g, '')
+          .replace(/[^0-9.,-]/g, '')
+          .replace(/\.(?=.*\.)/g, '')
+          .replace(',', '.');
+        const num = parseFloat(limpio);
+        return isNaN(num) ? valor : formatoMoneda.format(num);
+      }
+      return valor;
+    }
+
     function mostrarToast(mensaje) {
       const toast = document.getElementById('copiedToast');
       toast.textContent = `📋 ${mensaje}`;
@@ -115,7 +132,10 @@
           const td = document.createElement('td');
           const valor = values[index] ?? '';
 
-          td.textContent = valor;
+          td.textContent = columnasContables.includes(index)
+            ? toContableFormat(valor)
+            : valor;
+
           td.addEventListener('click', () => {
             navigator.clipboard.writeText(td.textContent)
               .then(() => mostrarToast(`Copiado: ${td.textContent}`));
@@ -136,7 +156,9 @@
           const label = headers[index] || `Col ${index}`;
           const valor = values[index] ?? '-';
 
-          const texto = valor;
+          const texto = columnasContables.includes(index)
+            ? toContableFormat(valor)
+            : valor;
 
           const campo = document.createElement('div');
           campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
