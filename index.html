@@ -1,8 +1,202 @@
-<!DOCTYPE html>
+<!DOCTYPEYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Buscador</title>
+  <link rel="shortcut icon" href="icon.png" style="border-radius: 7px;">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px 8px; }
+    th { background-color: #f2f2f2; }
+    td { cursor: pointer; }
+    td:hover { background-color: #e0f7fa; }
+
+    .input-container {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #searchInput { width: 50%; padding: 8px; }
+    button { padding: 8px 12px; cursor: pointer; }
+
+    #copiedToast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background-color: #323232;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      z-index: 9999;
+    }
+    #copiedToast.show { opacity: 1; }
+
+    .extra-card {
+      margin-top: 8px;
+      margin-left: 30px;
+      background: #f9f9f9;
+      padding: 12px;
+      border-left: 4px solid #2196f3;
+      border-radius: 6px;
+      font-size: 14px;
+      max-width: 500px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .extra-card div { margin-bottom: 17px; }
+    .extra-card strong { color: #333; }
+  </style>
+</head>
+<body>
+  <h2>Buscador de Datos</h2>
+
+  <div class="input-container">
+    <input type="text" id="searchInput" placeholder="Ingresar dato a buscar..." disabled />
+    <button id="searchBtn" disabled>Buscar</button>
+    <button id="clearBtn" disabled>Limpiar</button>
+  </div>
+
+  <div id="copiedToast">📋 Copiado al portapapeles</div>
+
+  <table id="excelTable">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const formatoMoneda = new Intl.NumberFormat('es-AR', {
+      style: 'currency', currency: 'ARS', minimumFractionDigits: 2
+    });
+
+    function toContableFormat(valor) {
+      if (typeof valor === 'number') {
+        return formatoMoneda.format(valor);
+      }
+      if (typeof valor === 'string') {
+        const limpio = valor
+          .replace(/\s/g, '')
+          .replace(/\u00A0/g, '')
+          .replace(/[^0-9.,-]/g, '')
+          .replace(/\.(?=.*\.)/g, '')
+          .replace(',', '.');
+        const num = parseFloat(limpio);
+        return isNaN(num) ? valor : formatoMoneda.format(num);
+      }
+      return valor;
+    }
+
+    function mostrarToast(mensaje) {
+      const toast = document.getElementById('copiedToast');
+      toast.textContent = `📋 ${mensaje}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function clearTable() {
+      document.querySelector('#excelTable thead').innerHTML = '';
+      document.querySelector('#excelTable tbody').innerHTML = '';
+    }
+
+    function renderTable(filteredData) {
+      const tableHead = document.querySelector('#excelTable thead');
+      const tableBody = document.querySelector('#excelTable tbody');
+      tableHead.innerHTML = '';
+      tableBody.innerHTML = '';
+
+      if (filteredData.length === 0) return;
+
+      const columnasPrincipales = [0, 1, 3, 8, 4];
+      const columnasAdicionales = [5, 6, 7, 2, 9, 10];
+      const columnasContables = [4, 6];
+
+      const headers = Object.keys(window.excelData[0]);
+
+      const headerRow = document.createElement('tr');
+      columnasPrincipales.forEach(index => {
+        const th = document.createElement('th');
+        th.textContent = headers[index] || '';
+        headerRow.appendChild(th);
+      });
+      tableHead.appendChild(headerRow);
+
+      filteredData.forEach(row => {
+        const values = Object.values(row);
+
+        const trMain = document.createElement('tr');
+        columnasPrincipales.forEach(index => {
+          const td = document.createElement('td');
+          const valor = values[index] ?? '';
+
+          td.textContent = columnasContables.includes(index)
+            ? toContableFormat(valor)
+            : valor;
+
+          td.addEventListener('click', () => {
+            navigator.clipboard.writeText(td.textContent)
+              .then(() => mostrarToast(`Copiado: ${td.textContent}`));
+          });
+
+          trMain.appendChild(td);
+        });
+        tableBody.appendChild(trMain);
+
+        const trExtra = document.createElement('tr');
+        const tdExtra = document.createElement('td');
+        tdExtra.colSpan = columnasPrincipales.length;
+
+        const card = document.createElement('div');
+        card.className = 'extra-card';
+
+        columnasAdicionales.forEach(index => {
+          const label = headers[index] || `Col ${index}`;
+          const valor = values[index] ?? '-';
+
+          const texto = columnasContables.includes(index)
+            ? toContableFormat(valor)
+            : valor;
+
+          const campo = document.createElement('div');
+          campo.innerHTML = `<strong>${label}:</strong> ${texto}`;
+          campo.style.cursor = 'pointer';
+          campo.addEventListener('click', () => {
+            const textoVisible = campo.textContent.replace(/^.*?:\s*/, '');
+            navigator.clipboard.writeText(textoVisible)
+              .then(() => mostrarToast(`Copiado: ${textoVisible}`));
+          });
+
+          card.appendChild(campo);
+        });
+
+        tdExtra.appendChild(card);
+        trExtra.appendChild(tdExtra);
+        tableBody.appendChild(trExtra);
+      });
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!searchTerm || !window.excelData) {
+        clearTable();
+        return;
+      }
+
+      const filteredData = window.excelData.filter(row =>
+        Object.values(row).some(cell => String(cell).toLowerCase().trim() === searchTerm)
+      );
+
+      if (filteredData.length > 0) {
+        renderTable(filteredData);
+      } else {
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Buscador Excel</title>
   <link rel="shortcut icon" href="icon.png" style="border-radius: 7px;">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
   <style>
