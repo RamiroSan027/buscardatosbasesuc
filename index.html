@@ -174,7 +174,7 @@
 
   <button class="dark-toggle" onclick="toggleDarkMode()">🌙 Modo oscuro</button>
 
-  <h2>Buscar</h2>
+  <h2>Buscar Datos</h2>
 
   <div class="input-container">
     <input type="text" id="searchInput" placeholder="Ingresar dato a buscar..." disabled />
@@ -342,7 +342,7 @@
         document.getElementById('searchInput').disabled = false;
         document.getElementById('searchBtn').disabled = false;
         document.getElementById('clearBtn').disabled = false;
-        alert('✅ Excel cargado desde GitHub');
+        alert('✅ Se cargó la Base correctamente');
       } catch (error) {
         document.getElementById('loadingOverlay').style.display = 'none';
         alert("❌ Error al cargar el Excel: " + error.message);
